@@ -20,7 +20,7 @@ namespace Luatrauma.AutoUpdater
 
             Console.WriteLine("Update completed.");
 
-            if (Args.Length > 1)
+            if (Args.Length > 0)
             {
                 Console.WriteLine("Starting " + string.Join(" ", Args));
                 Process process = Process.Start(Args[0], Args.Skip(1).ToArray());
