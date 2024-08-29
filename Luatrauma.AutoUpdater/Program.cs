@@ -23,7 +23,8 @@ namespace Luatrauma.AutoUpdater
             if (Args.Length > 1)
             {
                 Console.WriteLine("Starting " + string.Join(" ", Args));
-                Process.Start(Args[0], Args.Skip(1).ToArray());
+                Process process = Process.Start(Args[0], Args.Skip(1).ToArray());
+                await process.WaitForExitAsync();
             }
         }
     }
