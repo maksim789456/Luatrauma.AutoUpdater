@@ -64,6 +64,11 @@ namespace Luatrauma.AutoUpdater
             }
 
             Logger.Log($"Extracted patch zip to {Directory.GetCurrentDirectory()}");
+
+            if (File.Exists("luacsversion.txt")) // Workshop stuff, get rid of it so it doesn't interfere
+            {
+                File.Delete("luacsversion.txt");
+            }
         }
     }
 }
