@@ -35,8 +35,6 @@ namespace Luatrauma.AutoUpdater
             string tempFolder = Path.Combine(Directory.GetCurrentDirectory(), "Luatrauma.AutoUpdater.Temp");
             string patchZip = Path.Combine(tempFolder, "patch.zip");
 
-            Directory.CreateDirectory(tempFolder);
-
             Logger.Log($"Downloading patch zip from {patchUrl}");
 
             try

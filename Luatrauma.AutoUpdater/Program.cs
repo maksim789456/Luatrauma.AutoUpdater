@@ -8,6 +8,9 @@ namespace Luatrauma.AutoUpdater
 
         static void Main(string[] args)
         {
+            string tempFolder = Path.Combine(Directory.GetCurrentDirectory(), "Luatrauma.AutoUpdater.Temp");
+            Directory.CreateDirectory(tempFolder);
+
             AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
             {
                 Logger.Log("Unhandled exception: " + e.ExceptionObject);
