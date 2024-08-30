@@ -8,6 +8,11 @@ namespace Luatrauma.AutoUpdater
 
         static void Main(string[] args)
         {
+            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+            {
+                Logger.Log("Unhandled exception: " + e.ExceptionObject);
+            };
+
             Args = args;
 
             Task task = Start();
@@ -16,13 +21,15 @@ namespace Luatrauma.AutoUpdater
 
         public async static Task Start()
         {
+            Logger.Log("Starting update...");
+
             await Updater.Update();
 
-            Console.WriteLine("Update completed.");
+            Logger.Log("Update completed.");
 
             if (Args.Length > 0)
             {
-                Console.WriteLine("Starting " + string.Join(" ", Args));
+                Logger.Log("Starting " + string.Join(" ", Args));
 
                 var info = new ProcessStartInfo
                 {

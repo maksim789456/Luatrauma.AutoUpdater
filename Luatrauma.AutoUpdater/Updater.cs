@@ -10,8 +10,6 @@ namespace Luatrauma.AutoUpdater
 {
     static class Updater
     {
-        public const string TempFolder = "Luatrauma.AutoUpdater.Temp";
-
         public async static Task Update()
         {
             string patchUrl = null;
@@ -30,16 +28,16 @@ namespace Luatrauma.AutoUpdater
 
             if (patchUrl == null)
             {
-                Console.WriteLine("Unsupported operating system.");
+                Logger.Log("Unsupported operating system.");
                 return;
             }
 
-            string tempFolder = Path.Combine(Directory.GetCurrentDirectory(), TempFolder);
+            string tempFolder = Path.Combine(Directory.GetCurrentDirectory(), "Luatrauma.AutoUpdater.Temp");
             string patchZip = Path.Combine(tempFolder, "patch.zip");
 
             Directory.CreateDirectory(tempFolder);
 
-            Console.WriteLine("Downloading patch zip from {0}", patchUrl);
+            Logger.Log($"Downloading patch zip from {patchUrl}");
 
             try
             {
@@ -51,11 +49,11 @@ namespace Luatrauma.AutoUpdater
             }
             catch (Exception e)
             {
-                Console.WriteLine("Failed to download patch zip: {0}", e.Message);
+                Logger.Log($"Failed to download patch zip: {e.Message}");
                 return;
             }
 
-            Console.WriteLine("Downloaded patch zip to {0}", patchZip);
+            Logger.Log($"Downloaded patch zip to {patchZip}");
 
             try
             {
@@ -63,11 +61,11 @@ namespace Luatrauma.AutoUpdater
             }
             catch (Exception e)
             {
-                Console.WriteLine("Failed to extract patch zip: {0}", e.Message);
+                Logger.Log($"Failed to extract patch zip: {e.Message}");
                 return;
             }
 
-            Console.WriteLine("Extracted patch zip to {0}", Directory.GetCurrentDirectory());
+            Logger.Log($"Extracted patch zip to {Directory.GetCurrentDirectory()}");
         }
     }
 }
