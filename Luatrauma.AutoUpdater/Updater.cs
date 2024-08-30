@@ -34,9 +34,10 @@ namespace Luatrauma.AutoUpdater
             try
             {
                 using var client = new HttpClient();
-                using var s = await client.GetStreamAsync(patchUrl);
-                using var fs = new FileStream(patchZip, FileMode.OpenOrCreate);
-                await s.CopyToAsync(fs);
+
+                byte[] fileBytes = await client.GetByteArrayAsync(patchUrl);
+
+                await File.WriteAllBytesAsync(patchZip, fileBytes);
             }
             catch (Exception e)
             {
