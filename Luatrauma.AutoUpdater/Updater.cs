@@ -14,15 +14,25 @@ namespace Luatrauma.AutoUpdater
 
         public async static Task Update()
         {
-            string patchUrl;
+            string patchUrl = null;
+            if (OperatingSystem.IsWindows())
+            {
+                patchUrl = "https://github.com/evilfactory/LuaCsForBarotrauma/releases/download/latest/luacsforbarotrauma_patch_windows_client.zip";
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                patchUrl = "https://github.com/evilfactory/LuaCsForBarotrauma/releases/download/latest/luacsforbarotrauma_patch_linux_client.zip";
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                patchUrl = "https://github.com/evilfactory/LuaCsForBarotrauma/releases/download/latest/luacsforbarotrauma_patch_mac_client.zip";
+            }
 
-#if WINDOWS
-            patchUrl = "https://github.com/evilfactory/LuaCsForBarotrauma/releases/download/latest/luacsforbarotrauma_patch_windows_client.zip";
-#elif LINUX
-            patchUrl = "https://github.com/evilfactory/LuaCsForBarotrauma/releases/download/latest/luacsforbarotrauma_patch_linux_client.zip";
-#elif MACOS
-            patchUrl = "https://github.com/evilfactory/LuaCsForBarotrauma/releases/download/latest/luacsforbarotrauma_patch_mac_client.zip;
-#endif
+            if (patchUrl == null)
+            {
+                Console.WriteLine("Unsupported operating system.");
+                return;
+            }
 
             string tempFolder = Path.Combine(Directory.GetCurrentDirectory(), TempFolder);
             string patchZip = Path.Combine(tempFolder, "patch.zip");
