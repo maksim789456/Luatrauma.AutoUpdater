@@ -24,11 +24,7 @@ namespace Luatrauma.AutoUpdater
 
         public async static Task Start()
         {
-            Logger.Log("Starting update...");
-
             await Updater.Update();
-
-            Logger.Log("Update completed.");
 
             if (Args.Length > 0)
             {

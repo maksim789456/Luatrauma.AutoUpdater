@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
@@ -10,8 +11,23 @@ namespace Luatrauma.AutoUpdater
 {
     static class Updater
     {
+        private static void CopyFilesRecursively(string sourcePath, string targetPath)
+        {
+            foreach (string dirPath in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
+            {
+                Directory.CreateDirectory(dirPath.Replace(sourcePath, targetPath));
+            }
+
+            foreach (string newPath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
+            {
+                File.Copy(newPath, newPath.Replace(sourcePath, targetPath), true);
+            }
+        }
+
         public async static Task Update()
         {
+            Logger.Log("Starting update...");
+
             string patchUrl = null;
             if (OperatingSystem.IsWindows())
             {
@@ -34,6 +50,7 @@ namespace Luatrauma.AutoUpdater
 
             string tempFolder = Path.Combine(Directory.GetCurrentDirectory(), "Luatrauma.AutoUpdater.Temp");
             string patchZip = Path.Combine(tempFolder, "patch.zip");
+            string extractionFolder = Path.Combine(tempFolder, "Extracted");
 
             Logger.Log($"Downloading patch zip from {patchUrl}");
 
@@ -55,7 +72,14 @@ namespace Luatrauma.AutoUpdater
 
             try
             {
-                ZipFile.ExtractToDirectory(patchZip, Directory.GetCurrentDirectory(), true);
+                if (Directory.Exists(extractionFolder))
+                {
+                    Directory.Delete(extractionFolder, true);
+                }
+                Directory.CreateDirectory(extractionFolder);
+
+                ZipFile.ExtractToDirectory(patchZip, extractionFolder, true);
+
             }
             catch (Exception e)
             {
@@ -65,10 +89,42 @@ namespace Luatrauma.AutoUpdater
 
             Logger.Log($"Extracted patch zip to {Directory.GetCurrentDirectory()}");
 
+            Logger.Log($"Applying patch...");
+
+            // Verify that the dll version is the same as the current one
+            string currentDll = Path.Combine(Directory.GetCurrentDirectory(), "Barotrauma.dll");
+            string newDll = Path.Combine(extractionFolder, "Barotrauma.dll");
+
+            // Grab the version of the current dll
+            var currentVersion = FileVersionInfo.GetVersionInfo(currentDll);
+            var newVersion = FileVersionInfo.GetVersionInfo(currentDll);
+
+            if (currentVersion == null || newVersion == null)
+            {
+                Logger.Log("Failed to get version info for the dlls");
+                return;
+            }
+
+            if (currentVersion.FileVersion == newVersion.FileVersion)
+            {
+                Logger.Log($"The patch is compatible with the current game update {newVersion.FileVersion}.");
+            }
+            else
+            {
+                Logger.Log($"The patch is not compatible with the current game update {currentVersion.FileVersion} -> {newVersion.FileVersion}, aborting.");
+                return;
+            }
+
+            CopyFilesRecursively(extractionFolder, Directory.GetCurrentDirectory());
+
+            Logger.Log("Patch applied.");
+
             if (File.Exists("luacsversion.txt")) // Workshop stuff, get rid of it so it doesn't interfere
             {
                 File.Delete("luacsversion.txt");
             }
+
+            Logger.Log("Update completed.");
         }
     }
 }
