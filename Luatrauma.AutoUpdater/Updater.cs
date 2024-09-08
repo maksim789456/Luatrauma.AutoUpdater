@@ -95,9 +95,21 @@ namespace Luatrauma.AutoUpdater
             string currentDll = Path.Combine(Directory.GetCurrentDirectory(), "Barotrauma.dll");
             string newDll = Path.Combine(extractionFolder, "Barotrauma.dll");
 
+            if (!File.Exists(currentDll))
+            {
+                Logger.Log("Failed to find the current Barotrauma.dll", ConsoleColor.Red);
+                return;
+            }
+
+            if (!File.Exists(newDll))
+            {
+                Logger.Log("Failed to find the new Barotrauma.dll", ConsoleColor.Red);
+                return;
+            }
+
             // Grab the version of the current dll
             var currentVersion = FileVersionInfo.GetVersionInfo(currentDll);
-            var newVersion = FileVersionInfo.GetVersionInfo(currentDll);
+            var newVersion = FileVersionInfo.GetVersionInfo(newDll);
 
             if (currentVersion == null || newVersion == null)
             {
@@ -107,11 +119,16 @@ namespace Luatrauma.AutoUpdater
 
             if (currentVersion.FileVersion == newVersion.FileVersion)
             {
-                Logger.Log($"The patch is compatible with the current game update {newVersion.FileVersion}.");
+                Logger.Log($"The patch is compatible with the current game version {newVersion.FileVersion}.");
             }
             else
             {
-                Logger.Log($"The patch is not compatible with the current game update {currentVersion.FileVersion} -> {newVersion.FileVersion}, aborting.");
+                Logger.Log($"The patch is not compatible with the current game version {currentVersion.FileVersion} -> {newVersion.FileVersion}, aborting.");
+
+                Logger.Log("Theres no patch available for the current game version, the game will be launched without the patch, if there was a new game update please wait until a new patch is released.", ConsoleColor.Yellow);
+
+                await Task.Delay(8000);
+
                 return;
             }
 
