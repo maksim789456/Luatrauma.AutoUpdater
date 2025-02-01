@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Compression;
-using System.Linq;
-using System.Net;
+using System.Net.Http.Json;
 using System.Text;
-using System.Threading.Tasks;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Luatrauma.AutoUpdater.Github;
 
 namespace Luatrauma.AutoUpdater
 {
@@ -24,28 +23,59 @@ namespace Luatrauma.AutoUpdater
             }
         }
 
-        public async static Task Update()
+        private static readonly Dictionary<PlatformID, string> PatchFilenames = new()
+        {
+            { PlatformID.Win32NT, "luacsforbarotrauma_patch_windows_client.zip" },
+            { PlatformID.Unix, "luacsforbarotrauma_patch_linux_client.zip" },
+            { PlatformID.MacOSX, "luacsforbarotrauma_patch_mac_client.zip" },
+        };
+
+        private static readonly string LuaCsForBarotraumaRepoReleaseInfoUrl =
+            "https://api.github.com/repos/evilfactory/LuaCsForBarotrauma/releases/latest";
+
+        public static async Task Update()
         {
             Logger.Log("Starting update...");
 
-            string patchUrl = null;
-            if (OperatingSystem.IsWindows())
-            {
-                patchUrl = "https://github.com/evilfactory/LuaCsForBarotrauma/releases/download/latest/luacsforbarotrauma_patch_windows_client.zip";
-            }
-            else if (OperatingSystem.IsLinux())
-            {
-                patchUrl = "https://github.com/evilfactory/LuaCsForBarotrauma/releases/download/latest/luacsforbarotrauma_patch_linux_client.zip";
-            }
-            else if (OperatingSystem.IsMacOS())
-            {
-                patchUrl = "https://github.com/evilfactory/LuaCsForBarotrauma/releases/download/latest/luacsforbarotrauma_patch_mac_client.zip";
-            }
-
-            if (patchUrl == null)
+            var patchFilename = PatchFilenames[Environment.OSVersion.Platform];
+            if (patchFilename == null)
             {
                 Logger.Log("Unsupported operating system.");
                 return;
+            }
+
+            string patchUrl;
+            string patchId;
+            try
+            {
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.Add("User-Agent", "Luatrauma.AutoUpdater/1.0");
+                var jsonStr = await client.GetStringAsync(LuaCsForBarotraumaRepoReleaseInfoUrl);
+                var release = JsonSerializer.Deserialize<Release>(jsonStr);
+                if (release == null)
+                {
+                    Logger.Log("Failed to download patch release info");
+                    return;
+                }
+
+                var asset = release.Assets.FirstOrDefault(x => x.Name == patchFilename);
+                patchUrl = asset!.BrowserDownloadUrl;
+                patchId = asset!.Id.ToString();
+            }
+            catch (Exception e)
+            {
+                Logger.Log($"Failed to download patch release info: {e.Message}");
+                return;
+            }
+
+            if (File.Exists(".luatrauma_version"))
+            {
+                var current = await File.ReadAllTextAsync(".luatrauma_version");
+                if (current == patchId)
+                {
+                    Logger.Log("Update don't need");
+                    return;
+                }
             }
 
             string tempFolder = Path.Combine(Directory.GetCurrentDirectory(), "Luatrauma.AutoUpdater.Temp");
@@ -76,10 +106,10 @@ namespace Luatrauma.AutoUpdater
                 {
                     Directory.Delete(extractionFolder, true);
                 }
+
                 Directory.CreateDirectory(extractionFolder);
 
                 ZipFile.ExtractToDirectory(patchZip, extractionFolder, true);
-
             }
             catch (Exception e)
             {
@@ -89,7 +119,7 @@ namespace Luatrauma.AutoUpdater
 
             Logger.Log($"Extracted patch zip to {Directory.GetCurrentDirectory()}");
 
-            Logger.Log($"Applying patch...");
+            Logger.Log("Applying patch...");
 
             // Verify that the dll version is the same as the current one
             string currentDll = Path.Combine(Directory.GetCurrentDirectory(), "Barotrauma.dll");
@@ -123,9 +153,12 @@ namespace Luatrauma.AutoUpdater
             }
             else
             {
-                Logger.Log($"The patch is not compatible with the current game version {currentVersion.FileVersion} -> {newVersion.FileVersion}, aborting.");
+                Logger.Log(
+                    $"The patch is not compatible with the current game version {currentVersion.FileVersion} -> {newVersion.FileVersion}, aborting.");
 
-                Logger.Log("Theres no patch available for the current game version, the game will be launched without the patch, if there was a new game update please wait until a new patch is released.", ConsoleColor.Yellow);
+                Logger.Log(
+                    "Theres no patch available for the current game version, the game will be launched without the patch, if there was a new game update please wait until a new patch is released.",
+                    ConsoleColor.Yellow);
 
                 await Task.Delay(8000);
 
@@ -134,13 +167,14 @@ namespace Luatrauma.AutoUpdater
 
             CopyFilesRecursively(extractionFolder, Directory.GetCurrentDirectory());
 
-            Logger.Log("Patch applied.");
+            Logger.Log($"Patch {patchId} applied.");
 
             if (File.Exists("luacsversion.txt")) // Workshop stuff, get rid of it so it doesn't interfere
             {
                 File.Delete("luacsversion.txt");
             }
 
+            await File.WriteAllTextAsync(".luatrauma_version", patchId);
             Logger.Log("Update completed.");
         }
     }
